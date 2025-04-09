@@ -1,0 +1,155 @@
+%====================================================================
+%  Filename: solve_model2.m
+%  Description: Solves the 7-dimensional ODE system ("Model 2") 
+%               and computes the basic reproduction number R0.
+%====================================================================
+
+function solve_model2()
+
+    %------------------------------------------------
+    % 1. Define parameters
+    %------------------------------------------------
+    Gamma   = 11244;       % Recruitment (or birth) rate
+    beta_i  = 1.0598;      % Transmission rate constant
+    omega   = 0.5;         % Example value in (0,1)
+    delta   = 0.66;        
+    alpha   = 0.5;         % Example value in (0,1)
+    rho     = 0.38;
+    eta     = 0.1961;
+    xi      = 0.3214;
+    sigma   = 0.5;         % Example value in (0,1)
+    phi     = 0.1429;
+    psi     = 0.3217;
+    es      = 0.035;
+    ea      = 0.018;
+    mu      = 0.0001;      % Natural mortality (if applicable)
+
+    %------------------------------------------------
+    % 2. Define lambda (the force of infection)
+    %    y(5) = I_s, y(6) = I_a
+    %------------------------------------------------
+    lambda = @(y) beta_i * ( xi * y(5) + y(6) );
+
+    %------------------------------------------------
+    % 3. Define the system of ODEs
+    %    State variables: 
+    %      y(1) = S,    (susceptible)
+    %      y(2) = S_mw, (susceptible, partially vaccinated w)
+    %      y(3) = S_m,  (susceptible, partially vaccinated m)
+    %      y(4) = E,    (exposed)
+    %      y(5) = I_s,  (symptomatic infected)
+    %      y(6) = I_a,  (asymptomatic infected)
+    %      y(7) = R     (recovered)
+    %------------------------------------------------
+    function dydt = model_equations(~, y)
+        % Preallocate column vector
+        dydt = zeros(7,1);
+        
+        % y(1) = S
+        dydt(1) = Gamma ...
+                  - (1 - omega)*delta           * y(1) ...
+                  - (1 - omega)*(1 - delta)     * lambda(y) * y(1) ...
+                  - mu                           * y(1);
+
+        % y(2) = S_mw
+        dydt(2) = omega * y(1) ...
+                  - (1 - alpha) * lambda(y)     * y(2) ...
+                  - mu                           * y(2);
+
+        % y(3) = S_m
+        dydt(3) = (1 - omega)*delta  * y(1) ...
+                  - (1 - sigma)      * lambda(y) * y(3) ...
+                  - mu               * y(3);
+
+        % y(4) = E
+        dydt(4) = (1 - omega)*(1 - delta) * lambda(y) * y(1) ...
+                  + (1 - alpha)           * lambda(y) * y(2) ...
+                  + (1 - sigma)           * lambda(y) * y(3) ...
+                  - eta*(1 - rho)         * y(4) ...
+                  - eta*rho               * y(4) ...
+                  - mu                     * y(4);
+
+        % y(5) = I_s
+        dydt(5) = rho * eta * y(4) ...
+                  - phi       * y(5) ...
+                  - (es + mu) * y(5);
+
+        % y(6) = I_a
+        dydt(6) = (1 - rho) * eta * y(4) ...
+                  - psi       * y(6) ...
+                  - (ea + mu) * y(6);
+
+        % y(7) = R
+        dydt(7) = phi      * y(5) ...
+                  + psi      * y(6) ...
+                  - mu        * y(7);
+    end
+
+    %------------------------------------------------
+    % 4. Initial conditions
+    %------------------------------------------------
+    S0   = 1000;
+    Smw0 = 500;
+    Sm0  = 500;
+    E0   = 100;
+    Is0  = 50;
+    Ia0  = 50;
+    Rn0  = 10;   % 'Rn0' here for initial recovered (avoid confusion with R0)
+    
+    y0 = [S0; Smw0; Sm0; E0; Is0; Ia0; Rn0];
+
+    %------------------------------------------------
+    % 5. Solve the system using ODE45
+    %   (Adjust tspan as needed)
+    %------------------------------------------------
+    tspan = [0, 30];
+    [tSol, ySol] = ode45(@model_equations, tspan, y0);
+
+    %------------------------------------------------
+    % 6. Plot the numerical solution
+    %------------------------------------------------
+    figure('Name','Model 2 Dynamics','NumberTitle','off');
+    plot(tSol, ySol, 'LineWidth', 2);
+    xlabel('Time ($t$)/Days', 'Interpreter', 'latex', 'FontSize', 14);
+    ylabel('Population Size ($N$)', 'Interpreter', 'latex', 'FontSize', 14);
+    title('Dynamical System Model 2', 'Interpreter', 'latex', 'FontSize', 14);
+    legend({'S','S_{mw}','S_{m}','E','I_s','I_a','R'}, 'Location','Best');
+    grid on;
+
+    %------------------------------------------------
+    % 7. Compute the basic reproduction number R0
+    %    using your formula from the figure
+    %------------------------------------------------
+    %
+    %  NOTE: The line below is a PLACEHOLDER expression that
+    %  captures a common structure for an SEIR-type model with
+    %  two infectious states (I_s, I_a). Replace this with the
+    %  EXACT formula given in your figure/paper.
+    %
+    %  For example, a typical approach might be (purely illustrative!):
+    %
+    %    R0 = beta_i * (some expression involving omega, delta, alpha,
+    %                   rho, eta, phi, psi, es, ea, mu, etc.)
+    %
+    %  Based on your screenshot, you may have something like:
+    %
+    %    R0 = ( beta_i * (...) ) / ( omega + (1-omega)*delta + mu ) ...
+    %          * [ term1 + term2 ]
+    %
+    %  You must confirm the correct expression and place it here:
+    %
+    
+    R0_placeholder = beta_i * eta * ...
+        ( rho / (phi + es + mu) + (1 - rho) / (psi + ea + mu) );
+    
+    %------------------------------------------------
+    % 8. Display computed R0
+    %------------------------------------------------
+    disp('--------------------------------------------------');
+    disp('            DYNAMICAL SYSTEM: MODEL 2             ');
+    disp('--------------------------------------------------');
+    disp(['Computed R0 (using placeholder) = ', num2str(R0_placeholder)]);
+    disp('NOTE: Replace R0_placeholder with the exact formula.');
+    disp('--------------------------------------------------');
+
+end
