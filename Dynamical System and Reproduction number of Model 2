@@ -1,0 +1,47 @@
+	% Define parameters (adjust as necessary)
+	r1 = 0.3; r2 = 0.2; r3 = 0.1;
+	a = 0.1; b = 0.05; c = 0.07;
+	d = 0.08; g = 0.09;
+	f1 = 0.04; f2 = 0.03;
+	
+	% Define the system of ODEs as an anonymous function
+	odeFunc = @(t, y)[
+	-r1*y(1)*y(2) - r2*y(1)*y(3) - r3*y(1)*y(4);                 % dS/dt
+	r1*y(1)*y(2) + r2*y(1)*y(3) + r3*y(1)*y(4) - (a+b+c)*y(2);   % dA/dt
+	a*y(2) - d*y(3) - g*y(3);                                    % dA_D/dt
+	b*y(2) + d*y(3) - (f1+f2)*y(4);                              % dI/dt
+	c*y(2) + g*y(3) + f1*y(4);                                   % dR/dt
+	f2*y(4)                                                      % dD/dt
+	];
+	
+	% Initial conditions
+	S0 = 1000;
+	A0 = 10;
+	Ad0 = 5;
+	I0 = 2;
+	R0 = 0;
+	D0 = 0;
+	y0 = [S0; A0; Ad0; I0; R0; D0];
+	
+	% Time span for simulation
+	tspan = [0 50];
+	
+	% Solve ODE
+	[t, y] = ode45(odeFunc, tspan, y0);
+	
+	% Plotting the solution
+	figure;
+	plot(t, y, 'LineWidth', 2);
+	legend('S', 'A', 'A_D', 'I', 'R', 'D');
+    xlabel('Time ($t$)/Days', 'Interpreter', 'latex', 'FontSize', 14);
+    ylabel('Population Size ($N$)', 'Interpreter', 'latex', 'FontSize', 14);
+    title('Dynamical System Model 3', 'Interpreter', 'latex', 'FontSize', 14);
+	grid on;
+
+    % Compute the reproduction number R0
+numerator   = r1*(f1 + f2)*(d + g) + a*d*r2*(f1 + f2) + b*r3*(d + g);
+denominator = (f1 + f2)*(a + b + c)*(d + g);
+R0 = numerator / denominator;
+
+% Display the result
+disp(['The basic reproduction number R0 is: ', num2str(R0)]);
