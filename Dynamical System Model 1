@@ -1,0 +1,75 @@
+% Define parameters
+params = struct(); 
+params.theta = 1185; 
+params.mu = 1/(75.6*365); 
+params.phi = 0.0982;
+params.tau = 0.0631;
+params.alpha = 0.2503;
+params.delta = 0.0034;
+params.eta = 0.1255;
+params.sigma = 2.8213e-4;
+params.epsilon = 1/5.2;
+params.kappa = 0.5;
+params.psi = 1/15;
+params.omega = 1/15;
+params.b = 0.7621;
+params.d = 0.0667;
+params.rho = 0.5314;
+params.beta_A = 0.5;
+params.beta_I = 1;
+params.beta_H = 0.64;
+
+% Initial conditions
+S0 = 1000; 
+V1_0 = 100; 
+V2_0 = 100; 
+E0 = 20; 
+A0 = 30;
+I0 = 20; 
+H0 = 50; 
+R0 = 20;
+initial_conditions = [S0, V1_0, V2_0, E0, A0, I0, H0, R0];
+
+% Time span
+tspan = linspace(0, 300, 300); % 400 time steps
+
+% Solve the ODE system using ode45
+[t, y] = ode45(@(t, y) odesystem(t, y, params), tspan, initial_conditions);
+
+% Plot results
+figure;
+plot(t, y, 'LineWidth', 1.5);
+legend({'S', 'V_1', 'V_2', 'E', 'A', 'I', 'H', 'R'}, 'Location', 'best');
+xlabel('Time ($t$)/Days', 'Interpreter', 'latex', 'FontSize', 14);
+ylabel('Population Size ($N$)', 'Interpreter', 'latex', 'FontSize', 14);
+title('Dynamical System Model 1', 'Interpreter', 'latex', 'FontSize', 14);
+grid on;
+
+% Function defining the ODE system
+function dydt = odesystem(~, y, params)
+    S = y(1); 
+    V1 = y(2); 
+    V2 = y(3); 
+    E = y(4);
+    A = y(5); 
+    I = y(6); 
+    H = y(7); 
+    R = y(8);
+
+    N = S + V1 + V2 + E + A + I + H + R;
+    lambda = params.alpha * (params.beta_A * A + params.beta_I * I + params.beta_H * H) / N;
+
+    dS = params.theta - lambda * S - params.mu * S - params.phi * S + params.tau * V1;
+    dV1 = params.phi * S - params.tau * V1 - params.sigma * V1 - params.mu * V1;
+    dV2 = params.sigma * V1 - params.eta * V2 - params.mu * V2;
+    dE = lambda * S - params.epsilon * E - params.mu * E;  % Simplified as epsilon*((1-kappa)+kappa)=epsilon
+    dA = params.epsilon * (1 - params.kappa) * E - params.mu * A - ...
+         params.psi * params.rho * A - params.psi * (1 - params.rho) * A;
+    dI = params.epsilon * params.kappa * E + params.psi * (1 - params.rho) * A - ...
+         (params.mu + params.delta) * I - params.omega * params.b * I - params.omega * (1 - params.b) * I;
+    dH = params.omega * (1 - params.b) * I - (params.mu + params.delta) * H - params.d * H;
+    dR = params.omega * params.rho * I + params.psi * params.rho * A + ... 
+         params.d * H + params.eta * V2 - params.mu * R;
+
+    dydt = [dS; dV1; dV2; dE; dA; dI; dH; dR];
+end
